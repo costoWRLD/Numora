@@ -1,0 +1,6 @@
+node_modules/
+.qvac/
+.cache/
+data/
+.taste-skill/
+qvac.config.json

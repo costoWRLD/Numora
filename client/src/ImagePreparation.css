@@ -1,0 +1,18 @@
+.image-preparation { margin-top: 16px; }
+.preparation-heading { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.preparation-heading strong { color: #536257; font-size: 11px; }
+.preparation-heading span { color: #879188; font-size: 10px; line-height: 1.5; }
+.preparation-preview { position: relative; width: fit-content; max-width: 100%; max-height: 390px; overflow: hidden; margin-inline: auto; border-radius: 9px; background: #e9ece5; touch-action: none; }
+.preparation-preview canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 390px; }
+.crop-overlay { position: absolute; inset: 0; cursor: crosshair; touch-action: none; }
+.perspective-guides { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.perspective-guides polygon { fill: rgba(103, 167, 114, .12); stroke: #fff; stroke-width: 3; vector-effect: non-scaling-stroke; }
+.perspective-handle { position: absolute; z-index: 1; width: 18px; height: 18px; transform: translate(-50%, -50%); border: 2px solid #fff; border-radius: 50%; background: #39764c; box-shadow: 0 1px 7px rgba(0,0,0,.45); cursor: grab; touch-action: none; }
+.perspective-handle:active { cursor: grabbing; }
+.perspective-handle:focus-visible { outline: 3px solid #f1c75b; outline-offset: 2px; }
+.preparation-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 9px; }
+.preparation-actions button { padding: 7px 9px; border: 1px solid #dfe5dc; border-radius: 7px; background: #fff; color: #526458; font-size: 10px; cursor: pointer; }
+.preparation-actions button:hover { border-color: #9ab29a; background: #f7faf5; }
+.preparation-actions span { margin-left: auto; color: #879188; font-size: 10px; }
+.preparation-error { margin-top: 8px; color: #a8443e; font-size: 11px; }
+@media (max-width: 390px) { .preparation-actions span { width: 100%; margin-left: 0; } }
