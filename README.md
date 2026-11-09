@@ -34,6 +34,10 @@ Open the local address Vite prints (usually `http://localhost:5173`). The UI tal
 
 ## Windows desktop app
 
+Download the latest Windows installer from [GitHub Releases](https://github.com/costoWRLD/Numora/releases/latest). Each release includes its versioned `Numora-Setup-<version>.exe` installer.
+
+Numora uses semantic versioning: `MAJOR.MINOR.PATCH`. Patch releases fix bugs (for example, `1.0.2`), minor releases add compatible features (for example, `1.1.0`), and major releases mark breaking changes (for example, `2.0.0`).
+
 Install the project dependencies, then build the Windows installer:
 
 ```powershell
