@@ -311,6 +311,9 @@ function App() {
   const [defaultCurrency, setDefaultCurrency] = useState<'KES' | 'USD'>('KES')
   const [settingsCurrency, setSettingsCurrency] = useState<'KES' | 'USD'>('KES')
   const [settingsStartPage, setSettingsStartPage] = useState<'dashboard' | 'receipts'>('dashboard')
+  const [appearance, setAppearance] = useState<'light' | 'dark'>(() => {
+    try { return localStorage.getItem('numora:appearance') === 'dark' ? 'dark' : 'light' } catch { return 'light' }
+  })
   const [settingsChatModel, setSettingsChatModel] = useState('auto')
   const [settingsInterpretationModel, setSettingsInterpretationModel] = useState('auto')
   const [settingsOcrModel, setSettingsOcrModel] = useState<'auto' | 'easyocr' | 'lightonocr3'>('auto')
@@ -1281,6 +1284,11 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem('numora:last-page', activePage) } catch {}
   }, [activePage])
+
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = appearance
+    try { localStorage.setItem('numora:appearance', appearance) } catch {}
+  }, [appearance])
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0)
@@ -2512,6 +2520,19 @@ function App() {
                 <label>Default receipt OCR<select value={settingsOcrModel} onChange={(event) => setSettingsOcrModel(event.target.value as 'auto' | 'easyocr' | 'lightonocr3')}><option value="auto">Automatic · fast scan, deeper retry when needed</option><option value="easyocr" disabled={!installedModel('easyocr')}>QVAC EasyOCR Latin{installedModel('easyocr') ? '' : ' · download first'}</option><option value="lightonocr3" disabled={!installedModel('lightonocr3')}>LightOnOCR-3{installedModel('lightonocr3') ? '' : ' · download first'}</option></select></label>
                 <button className="add-item-button" type="submit" disabled={settingsSaving || !serverReady}>{settingsSaving ? 'Saving…' : 'Save defaults'}</button>
               </form>
+              <div className="appearance-setting">
+                <div className="appearance-setting-copy"><strong>Appearance</strong><small>Choose a comfortable look for every Numora page.</small></div>
+                <div className="appearance-switch" role="group" aria-label="Choose light or dark appearance">
+                  <button type="button" className={appearance === 'light' ? 'is-active' : ''} aria-pressed={appearance === 'light'} onClick={() => setAppearance('light')}>
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.4" /><path d="M10 1.8v2m0 12.4v2M1.8 10h2m12.4 0h2M4.2 4.2l1.4 1.4m8.8 8.8 1.4 1.4m0-11.6-1.4 1.4m-8.8 8.8-1.4 1.4" /></svg>
+                    <span>Light</span>
+                  </button>
+                  <button type="button" className={appearance === 'dark' ? 'is-active' : ''} aria-pressed={appearance === 'dark'} onClick={() => setAppearance('dark')}>
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.8 12.4A7.2 7.2 0 0 1 7.6 3.2a7.3 7.3 0 1 0 9.2 9.2Z" /></svg>
+                    <span>Dark</span>
+                  </button>
+                </div>
+              </div>
               {settingsSavedMessage && <p className="rule-message" role="status">{settingsSavedMessage}</p>}
             </section>
 
