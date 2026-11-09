@@ -32,6 +32,19 @@ npm.cmd run dev:ui
 
 Open the local address Vite prints (usually `http://localhost:5173`). The UI talks only to the API bound to `127.0.0.1`. QVAC EasyOCR uses a 1280px detection canvas and retains its detector/recognizer in memory for subsequent scans. If core fields are missing or confidence is poor, LightOnOCR-3 runs automatically; if EasyOCR found fields but arithmetic does not agree, the review screen offers an optional accuracy reread. In a seven-receipt direct OCR benchmark on this laptop, LightOnOCR-3 took about 12–34 seconds per image on Vulkan. The prior LightOnOCR-2 GPU benchmark averaged about 185 seconds per image on six shared images. Both read the benchmarked totals; the timing is device- and image-dependent and does not establish a general accuracy advantage. The Qwen2.5 3B Instruct Q4_K_M GGUF is about 1.93 GB and stored under `.qvac/models`; after all model weights are cached, the app can work offline.
 
+## Windows desktop app
+
+Install the project dependencies, then build the Windows installer:
+
+```powershell
+npm.cmd ci
+npm.cmd run build:desktop
+```
+
+The installer is written to `release/Numora-Setup-<version>.exe`. It uses a branded setup wizard and creates Start menu and desktop shortcuts. When Numora starts, a short animated screen shows the local workspace starting before opening the app. Numora runs in its own window and starts its API on a free loopback port. The app and API stay on this computer. Ledger files are stored in `%LOCALAPPDATA%\Numora\data`, and model files are stored in `%LOCALAPPDATA%\Numora\.qvac\models`. The installer does not contain AI model weights, local ledger data, or `.env` configuration files; download models in Settings or import local model files before using OCR and open-ended chat. Models load only when needed and are not downloaded automatically at launch. The Windows build includes CPU and Vulkan inference runtimes; it omits CUDA binaries to keep the download smaller.
+
+For desktop development, run `npm.cmd run desktop:dev`. This opens the same UI in an Electron window and uses the project’s ignored `data/` and `.qvac/` folders.
+
 The selected quantized file is from [bartowski's Qwen2.5-3B-Instruct-GGUF repository](https://huggingface.co/bartowski/Qwen2.5-3B-Instruct-GGUF); its model card identifies the original model license as Qwen Research. Review the license for the original Qwen2.5-3B-Instruct model and the quantization repository terms before distributing the app or model materials.
 
 To force both model stages to CPU, stop the server and restart it from PowerShell:

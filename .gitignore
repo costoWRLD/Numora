@@ -2,5 +2,7 @@ node_modules/
 .qvac/
 .cache/
 data/
+release/
 .taste-skill/
 qvac.config.json
+.numora-*.log

@@ -1,20 +1,83 @@
 {
   "name": "numora",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.0.1",
+  "description": "Private expense tracking, ready when you are.",
+  "author": "Numora",
+  "main": "desktop/main.cjs",
   "scripts": {
     "test": "echo \"No tests are configured yet.\" && exit 1",
     "dev:ui": "npm run dev --prefix client",
     "dev:server": "node .\\server.mjs",
-    "build:ui": "npm run build --prefix client"
+    "build:ui": "npm run build --prefix client",
+    "desktop:dev": "electron .",
+    "build:desktop": "npm run build:ui && electron-builder --win nsis"
   },
   "keywords": [],
-  "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "@qvac/sdk": "0.22.0",
+    "node": "24.19.0",
     "node-llama-cpp": "3.22.2"
+  },
+  "devDependencies": {
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.numora.desktop",
+    "productName": "Numora",
+    "asar": false,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "!client/node_modules/**/*",
+      "!client/src/**/*",
+      "!client/public/**/*",
+      "!client/*.json",
+      "!client/vite.config.ts",
+      "!client/index.html",
+      "!node_modules/**/prebuilds/android-*/**",
+      "!node_modules/**/prebuilds/darwin-*/**",
+      "!node_modules/**/prebuilds/ios-*/**",
+      "!node_modules/**/prebuilds/linux-*/**",
+      "!node_modules/@node-llama-cpp/win-x64-cuda/**/*",
+      "!node_modules/@node-llama-cpp/win-x64-cuda-ext/**/*",
+      "!**/qvac-ggml-cuda.dll",
+      "!**/.cache/**/*",
+      "!**/data/**/*",
+      "!**/.qvac/**/*",
+      "!**/.env",
+      "!**/.env.*",
+      "!**/*.gguf",
+      "!**/*.safetensors",
+      "!**/*.onnx",
+      "!**/*.pt",
+      "!**/*.pth",
+      "!**/*.tflite",
+      "!*.log"
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "Numora-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeader": "build/installerHeader.bmp",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "shortcutName": "Numora",
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

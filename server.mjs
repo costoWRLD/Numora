@@ -3103,6 +3103,56 @@ async function browseQvacChatModels() {
   }
 }
 
+const desktopAssetTypes = new Map([
+  ['.css', 'text/css; charset=utf-8'],
+  ['.html', 'text/html; charset=utf-8'],
+  ['.ico', 'image/x-icon'],
+  ['.jpeg', 'image/jpeg'],
+  ['.jpg', 'image/jpeg'],
+  ['.js', 'text/javascript; charset=utf-8'],
+  ['.json', 'application/json; charset=utf-8'],
+  ['.png', 'image/png'],
+  ['.svg', 'image/svg+xml'],
+  ['.wasm', 'application/wasm'],
+  ['.webp', 'image/webp'],
+  ['.woff', 'font/woff'],
+  ['.woff2', 'font/woff2'],
+])
+
+async function serveDesktopUi(request, response, url) {
+  if (process.env.NUMORA_DESKTOP !== '1' || !['GET', 'HEAD'].includes(request.method || '')) return false
+  if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return false
+
+  let requestedPath
+  try { requestedPath = decodeURIComponent(url.pathname) } catch { return send(response, 400, { error: 'Invalid path.' }) }
+  const distributionDir = path.resolve(root, 'client', 'dist')
+  const indexPath = path.join(distributionDir, 'index.html')
+  const relativePath = requestedPath.replace(/^[/\\]+/, '') || 'index.html'
+  let filePath = path.resolve(distributionDir, relativePath)
+  if (filePath !== distributionDir && !filePath.startsWith(`${distributionDir}${path.sep}`)) return send(response, 404, { error: 'Not found.' })
+
+  try {
+    const details = await stat(filePath)
+    if (details.isDirectory()) filePath = path.join(filePath, 'index.html')
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+    if (path.extname(relativePath)) return send(response, 404, { error: 'Not found.' })
+    filePath = indexPath
+  }
+
+  const content = await readFile(filePath)
+  const contentType = desktopAssetTypes.get(path.extname(filePath).toLowerCase()) || 'application/octet-stream'
+  const isHtml = path.extname(filePath).toLowerCase() === '.html'
+  response.writeHead(200, {
+    'Content-Type': contentType,
+    'Cache-Control': isHtml ? 'no-cache' : 'public, max-age=31536000, immutable',
+    'Content-Length': content.length,
+    'X-Content-Type-Options': 'nosniff',
+  })
+  response.end(request.method === 'HEAD' ? undefined : content)
+  return true
+}
+
 async function handle(request, response) {
   const url = new URL(request.url || '/', `http://${host}:${port}`)
   if (request.method === 'GET' && url.pathname === '/api/personal-memory') {
@@ -4130,6 +4180,7 @@ async function handle(request, response) {
     await removePendingReview(body.reviewId, pendingImage)
     return send(response, 201, { receipt, rememberedCategoryRule: rememberCategoryRule, ...(rememberCategoryRule ? { categoryRules: nextCategoryRules } : {}) })
   }
+  if (await serveDesktopUi(request, response, url)) return
   return send(response, 404, { error: 'Not found.' })
 }
 
