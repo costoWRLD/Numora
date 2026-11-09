@@ -1448,7 +1448,9 @@ input:not([type='checkbox']):not([type='radio']):focus, select:focus, textarea:f
 .settings-ai-card { grid-column: 1 / -1; }
 .storage-folder-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; margin-top: 16px; }
 .storage-folder-form label, .local-model-form label { min-width: 0; display: flex; flex-direction: column; gap: 6px; color: #667568; font-size: 11px; font-weight: 600; }
+.storage-folder-input-row { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .storage-folder-form input, .local-model-form input { width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid #dce5df; border-radius: 8px; background: #fff; color: #33443a; font: 12px 'Segoe UI', sans-serif; }
+.storage-folder-input-row .secondary-button { min-height: 38px; }
 .storage-folder-form input:focus, .local-model-form input:focus { border-color: #71a98b; outline: 0; box-shadow: 0 0 0 3px rgba(23,107,87,.09); }
 .storage-folder-form > button { min-height: 38px; }
 .model-library-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 10px; padding-bottom: 10px; border-bottom: 1px solid #edf0eb; }

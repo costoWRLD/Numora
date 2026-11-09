@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { gsap } from 'gsap'
 import './App.css'
+import './NumoraRefresh.css'
 import BrandMark from './BrandMark'
 import ImagePreparation, { type ImageFocusArea, type ImagePreparationHandle } from './ImagePreparation'
 import LaunchScreen, { type PendingReceiptReview, type StartupModelPreparation, type StartupModelStatus, type StartupStorageStatus } from './LaunchScreen'
@@ -163,14 +164,14 @@ type BootstrapPayload = { status: string; storage: StartupStorageStatus; models:
 type LedgerStreamingAnswer = { conversationId: string; messageId: string; text: string }
 type WorkspacePage = 'dashboard' | 'receipts' | 'expenses' | 'inventory' | 'reports' | 'ask' | 'categories' | 'settings'
 
-const WORKSPACE_NAV: Array<{ id: WorkspacePage; label: string; icon: string }> = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'grid' },
-  { id: 'ask', label: 'Ask Numora', icon: 'chat' },
-  { id: 'receipts', label: 'Receipts', icon: 'receipt' },
-  { id: 'expenses', label: 'Transactions', icon: 'wallet' },
-  { id: 'inventory', label: 'Inventory', icon: 'box' },
-  { id: 'reports', label: 'Reports', icon: 'chart' },
-  { id: 'categories', label: 'Categories', icon: 'tag' },
+const WORKSPACE_NAV: Array<{ id: WorkspacePage; label: string; description: string; icon: string }> = [
+  { id: 'dashboard', label: 'Dashboard', description: 'Money at a glance', icon: 'grid' },
+  { id: 'ask', label: 'Ask Numora', description: 'Ask about your money', icon: 'chat' },
+  { id: 'receipts', label: 'Receipts', description: 'Add or read a receipt', icon: 'receipt' },
+  { id: 'expenses', label: 'Transactions', description: 'Money in and out', icon: 'wallet' },
+  { id: 'inventory', label: 'Inventory', description: 'Things you buy and sell', icon: 'box' },
+  { id: 'reports', label: 'Reports', description: 'See spending patterns', icon: 'chart' },
+  { id: 'categories', label: 'Categories', description: 'Group your spending', icon: 'tag' },
 ]
 function NavIcon({ name }: { name: string }) {
   const paths: Record<string, string> = {
@@ -197,6 +198,14 @@ function formatFileSize(bytes: number) {
   return bytes >= 1024 * 1024
     ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
     : `${Math.max(1, Math.round(bytes / 1024))} KB`
+}
+
+function localServiceError(cause: unknown, fallback: string) {
+  const message = cause instanceof Error ? cause.message : ''
+  if (/Unexpected end of JSON input|Failed to execute 'json'|Failed to fetch|NetworkError/i.test(message)) {
+    return 'Numora could not reach its local service. Start or restart the API server, then try again.'
+  }
+  return message || fallback
 }
 
 type ReportPeriod = 'this-month' | 'last-month'
@@ -827,6 +836,18 @@ function App() {
     } finally { setStorageChangeBusy(false) }
   }
 
+  async function chooseStorageDirectory() {
+    try {
+      const directory = await window.numoraDesktop?.selectWorkspaceDirectory()
+      if (directory) {
+        setStorageDirectoryDraft(directory)
+        setStorageChangeMessage('')
+      }
+    } catch (cause) {
+      setStorageChangeMessage(cause instanceof Error ? cause.message : 'Could not open the folder picker.')
+    }
+  }
+
   async function refreshLedgerReport(period: ReportPeriod = reportPeriod) {
     try {
       const range = getReportRange(period)
@@ -847,7 +868,7 @@ function App() {
       if (!response.ok) throw new Error(result.error || 'Could not refresh this report period.')
       setLedgerReport(result.report as LedgerReport)
     } catch (cause) {
-      setReportError(cause instanceof Error ? cause.message : 'Could not refresh this report period.')
+      setReportError(localServiceError(cause, 'Could not refresh this report period.'))
     } finally {
       setReportsLoading(false)
     }
@@ -1018,7 +1039,7 @@ function App() {
       const savedActiveId = (() => { try { return localStorage.getItem('numora:active-ledger-chat') || '' } catch { return '' } })()
       setActiveLedgerChatId((current) => conversations.some((chat) => chat.id === current) ? current : conversations.some((chat) => chat.id === savedActiveId) ? savedActiveId : conversations[0]?.id || '')
     } catch (cause) {
-      setLedgerChatError(cause instanceof Error ? cause.message : 'Could not load local chat history.')
+      setLedgerChatError(localServiceError(cause, 'Could not load local chat history.'))
     } finally { setLedgerChatsLoading(false) }
   }
 
@@ -1035,7 +1056,7 @@ function App() {
       setLedgerChatDraft('')
       setLedgerChatError('')
     } catch (cause) {
-      setLedgerChatError(cause instanceof Error ? cause.message : 'Could not create a new chat.')
+      setLedgerChatError(localServiceError(cause, 'Could not create a new chat.'))
     }
   }
 
@@ -1074,7 +1095,7 @@ function App() {
       if (answer?.role === 'assistant') await revealLedgerAnswer(conversation.id, answer.id, answer.content)
     } catch (cause) {
       setLedgerChatDraft(question)
-      setLedgerChatError(cause instanceof Error ? cause.message : 'Could not ask the local ledger.')
+      setLedgerChatError(localServiceError(cause, 'Could not ask the local ledger.'))
     } finally { setLedgerStreamingAnswer(null); setLedgerChatSending(false); setLedgerSendingQuestion(''); setLedgerSendingConversationId('') }
   }
 
@@ -1115,7 +1136,7 @@ function App() {
         try { nextId ? localStorage.setItem('numora:active-ledger-chat', nextId) : localStorage.removeItem('numora:active-ledger-chat') } catch {}
       }
     } catch (cause) {
-      setLedgerChatError(cause instanceof Error ? cause.message : 'Could not delete this chat.')
+      setLedgerChatError(localServiceError(cause, 'Could not delete this chat.'))
     } finally { setLedgerChatDeletingId('') }
   }
 
@@ -1262,6 +1283,7 @@ function App() {
   }, [activePage])
 
   useLayoutEffect(() => {
+    window.scrollTo(0, 0)
     const root = workspaceMainRef.current
     const page = root?.querySelector<HTMLElement>('.page-content')
     if (!root || !page || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -1271,8 +1293,16 @@ function App() {
       const timeline = gsap.timeline({ defaults: { ease: 'power2.out' } })
       // Keep ledger data readable throughout navigation; motion should never
       // make transaction rows or filters look disabled while they enter.
-      if (heading) timeline.from(heading, { y: 8, duration: 0.24 })
-      if (sections.length) timeline.from(sections, { y: 8, duration: 0.28, stagger: 0.04 }, heading ? '-=0.1' : 0)
+      if (heading) timeline.from(heading, { y: 10, autoAlpha: 0, duration: 0.28 })
+      if (sections.length) timeline.from(sections, { y: 12, autoAlpha: 0, duration: 0.32, stagger: 0.045 }, heading ? '-=0.1' : 0)
+      if (activePage === 'dashboard') {
+        const bars = page.querySelectorAll('.dashboard-income-bar, .dashboard-expense-bar')
+        if (bars.length) timeline.from(bars, { scaleY: 0, transformOrigin: '50% 100%', duration: 0.5, stagger: 0.035 }, '<+=0.08')
+      }
+      if (activePage === 'reports') {
+        const categoryBars = page.querySelectorAll('.report-category-track i')
+        if (categoryBars.length) timeline.from(categoryBars, { scaleX: 0, transformOrigin: 'left center', duration: 0.46, stagger: 0.05 }, '<+=0.08')
+      }
     }, root)
     return () => context.revert()
   }, [activePage])
@@ -2083,11 +2113,11 @@ function App() {
         <div className="workspace-switcher"><span className="workspace-avatar">N</span><span><strong>My workspace</strong><small>Local account</small></span><span className="switcher-chevron">⌄</span></div>
         <span className="sidebar-label">WORKSPACE</span>
         <nav className="sidebar-nav" aria-label="Main navigation">
-          {WORKSPACE_NAV.map((item) => <button key={item.id} type="button" className={`sidebar-nav-item${activePage === item.id ? ' is-active' : ''}`} aria-current={activePage === item.id ? 'page' : undefined} onClick={() => setActivePage(item.id)}><NavIcon name={item.icon} /><span>{item.label}</span>{item.id === 'receipts' && saved.length > 0 && <small>{saved.length}</small>}</button>)}
+          {WORKSPACE_NAV.map((item) => <button key={item.id} type="button" className={`sidebar-nav-item nav-item-${item.id}${activePage === item.id ? ' is-active' : ''}`} aria-label={`${item.label}. ${item.description}`} title={`${item.label}: ${item.description}`} aria-current={activePage === item.id ? 'page' : undefined} onClick={() => setActivePage(item.id)}><NavIcon name={item.icon} /><span className="sidebar-item-copy"><span>{item.label}</span><small>{item.description}</small></span>{item.id === 'receipts' && saved.length > 0 && <small className="sidebar-count" aria-label={`${saved.length} saved receipts`}>{saved.length}</small>}</button>)}
         </nav>
         <div className="sidebar-spacer" />
         <div className={`sidebar-service${serverReady ? ' is-ready' : ''}`}><span className="service-orbit"><NavIcon name="sparkle" /></span><span><strong>{serverReady ? 'Local AI ready' : 'Local service offline'}</strong><small>{serverReady ? 'QVAC is running on this device' : 'Start the Numora API server'}</small></span><i /></div>
-        <button type="button" className={`sidebar-nav-item sidebar-settings${activePage === 'settings' ? ' is-active' : ''}`} aria-current={activePage === 'settings' ? 'page' : undefined} onClick={() => setActivePage('settings')}><NavIcon name="settings" /><span>Settings</span></button>
+        <button type="button" className={`sidebar-nav-item sidebar-settings${activePage === 'settings' ? ' is-active' : ''}`} aria-label="Settings. Models and preferences" title="Settings: Models and preferences" aria-current={activePage === 'settings' ? 'page' : undefined} onClick={() => setActivePage('settings')}><NavIcon name="settings" /><span className="sidebar-item-copy"><span>Settings</span><small>Models and preferences</small></span></button>
         <div className="sidebar-user"><span className="user-avatar">C</span><span><strong>Local user</strong><small>Private workspace</small></span><span className="user-menu">•••</span></div>
       </aside>
 
@@ -2168,7 +2198,7 @@ function App() {
           </section>}
         </section>}
         {receiptScreen === 'saved' && savedReceiptConfirmation && <section className="receipt-saved-confirmation" role="status" aria-live="polite">
-          <div className="saved-confirmation-heading"><span className="saved-checkmark" aria-hidden="true">✓</span><div><h2>Expense saved</h2><p>The receipt and confirmed expense are stored locally.</p></div></div>
+          <div className="saved-confirmation-heading"><span className="saved-checkmark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="m3 8 3.1 3.1L13 4.5" /></svg></span><div><h2>Expense saved</h2><p>The receipt and confirmed expense are stored locally.</p></div></div>
           <dl className="saved-confirmation-details"><div><dt>Merchant</dt><dd>{savedReceiptConfirmation.merchant || 'Unnamed merchant'}</dd></div><div><dt>Date</dt><dd>{savedReceiptConfirmation.date || '—'}</dd></div><div><dt>Total</dt><dd>{savedReceiptConfirmation.currency} {savedReceiptConfirmation.amount}</dd></div><div><dt>Category</dt><dd>{savedReceiptConfirmation.category}</dd></div></dl>
           {notice && <p className="saved-rule-note">{notice}</p>}
           <div className="saved-confirmation-actions"><button type="button" className="secondary-action" onClick={() => { setExpenseSearch(savedReceiptConfirmation.merchant); setActivePage('expenses'); setReceiptScreen('import'); setSavedReceiptConfirmation(null) }}>View expense details</button><button type="button" className="primary-button" onClick={() => { showNextReceiptAfterSave(); if (!receiptQueue.some((item) => item.id !== savedReceiptQueueId && (['queued', 'needs-review'].includes(item.status) || (item.status === 'failed' && item.retryable)))) window.setTimeout(() => inputRef.current?.click(), 0) }}>Review next / import another</button></div>
@@ -2190,7 +2220,7 @@ function App() {
                 <div className="preview-shade" />
                 {receiptScanSweepActive && <div className="preview-scan-overlay" aria-hidden="true"><span className="preview-scan-sweep" /><span className="preview-scan-label"><i /> Reading locally</span></div>}
                 <div className="preview-caption">
-                  <span className="image-check" aria-hidden="true">✓</span>
+                  <span className="image-check" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="m3 8 3.1 3.1L13 4.5" /></svg></span>
                   <div className="preview-file-info"><strong>{file.name}</strong><span>{formatFileSize(file.size)} · {scan ? `Read in ${(scan.elapsedMs / 1000).toFixed(1)}s` : 'Ready to read locally'}</span></div>
                   <button className="remove-button" type="button" onClick={clearImage} aria-label="Remove selected image"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5h12M8 5V3.5h4V5m-6 0 .7 11h6.6L14 5M8.5 8v5m3-5v5" /></svg></button>
                 </div>
@@ -2206,7 +2236,7 @@ function App() {
 
             {file && receiptScreen === 'import' && <button type="button" className="add-more-files" onClick={() => inputRef.current?.click()}>＋ Add more receipts</button>}
 
-            {receiptScreen === 'review' && <div className="receipt-filmstrip" aria-label="Receipt images in this batch">{receiptQueue.map((item, index) => <button key={item.id} type="button" className={`receipt-filmstrip-item${item.id === activeQueueId ? ' is-active' : ''} status-${item.status}`} aria-label={`${item.file.name}, ${item.status}${item.id === activeQueueId ? ', selected' : ''}`} aria-pressed={item.id === activeQueueId} onClick={() => openQueuedReceipt(item)} disabled={item.status === 'duplicate' || item.status === 'saved'}><span className="filmstrip-preview">{item.thumbnail ? <img src={item.thumbnail} alt="" /> : <span>▤</span>}<i>{item.status === 'saved' ? '✓' : item.status === 'processing' ? '◌' : item.status === 'needs-review' ? '✓' : index + 1}</i></span><span className="filmstrip-name" title={item.file.name}>{item.merchant || item.file.name}</span><small>{item.status === 'needs-review' ? 'Ready to review' : item.status === 'processing' ? 'Reading' : item.status === 'saved' ? 'Saved' : item.status === 'failed' ? 'Retry needed' : 'Not analyzed'}</small></button>)}</div>}
+            {receiptScreen === 'review' && <div className="receipt-filmstrip" aria-label="Receipt images in this batch">{receiptQueue.map((item, index) => <button key={item.id} type="button" className={`receipt-filmstrip-item${item.id === activeQueueId ? ' is-active' : ''} status-${item.status}`} aria-label={`${item.file.name}, ${item.status}${item.id === activeQueueId ? ', selected' : ''}`} aria-pressed={item.id === activeQueueId} onClick={() => openQueuedReceipt(item)} disabled={item.status === 'duplicate' || item.status === 'saved'}><span className="filmstrip-preview">{item.thumbnail ? <img src={item.thumbnail} alt="" /> : <span>▤</span>}<i className="filmstrip-status-icon" aria-hidden="true">{item.status === 'saved' || item.status === 'needs-review' ? <svg viewBox="0 0 16 16"><path d="m3 8 3.1 3.1L13 4.5" /></svg> : item.status === 'processing' ? <span className="filmstrip-spinner" /> : index + 1}</i></span><span className="filmstrip-name" title={item.file.name}>{item.merchant || item.file.name}</span><small>{item.status === 'needs-review' ? 'Ready to review' : item.status === 'processing' ? 'Reading' : item.status === 'saved' ? 'Saved' : item.status === 'failed' ? 'Retry needed' : 'Not analyzed'}</small></button>)}</div>}
 
             {receiptScreen === 'import' && <section className="receipt-queue" aria-labelledby="receipt-queue-title">
               <div className="receipt-queue-heading"><div><span className="section-kicker">IMPORT QUEUE</span><h3 id="receipt-queue-title">Receipt files <small>{receiptQueue.length}</small></h3></div><div className="queue-tools"><label className="queue-search"><NavIcon name="search" /><input value={receiptQueueSearch} onChange={(event) => setReceiptQueueSearch(event.target.value)} placeholder="Search filename or merchant" aria-label="Search receipt filenames or merchants" /></label><button type="button" className="queue-process-button" onClick={beginReceiptAnalysis} disabled={!serverReady || !receiptQueue.some((item) => item.status === 'queued' || item.status === 'needs-review' || (item.status === 'failed' && item.retryable))}>Review &amp; analyze</button></div></div>
@@ -2489,7 +2519,7 @@ function App() {
               <div className="settings-card-title"><span className="settings-icon"><NavIcon name="receipt" /></span><div><span className="section-kicker">PRIVATE STORAGE</span><h2>Workspace folder</h2></div></div>
               <p>Move your ledger to a folder with enough space. Numora copies the current workspace and keeps the old folder as a backup. This path is saved in your Windows user settings, so it stays separate from the app’s install folder.</p>
               <form className="storage-folder-form" onSubmit={(event) => void changeStorageDirectory(event)}>
-                <label>Current folder<input value={storageDirectoryDraft} onChange={(event) => { setStorageDirectoryDraft(event.target.value); setStorageChangeMessage('') }} placeholder="C:\\Users\\you\\Documents\\Numora" spellCheck={false} required /></label>
+                <label>Current folder<div className="storage-folder-input-row"><input value={storageDirectoryDraft} onChange={(event) => { setStorageDirectoryDraft(event.target.value); setStorageChangeMessage('') }} placeholder="C:\\Users\\you\\Documents\\Numora" spellCheck={false} required />{window.numoraDesktop?.selectWorkspaceDirectory && <button className="secondary-button" type="button" onClick={() => void chooseStorageDirectory()} disabled={storageChangeBusy}>Browse…</button>}</div></label>
                 <button className="add-item-button" type="submit" disabled={!serverReady || storageChangeBusy || !storageDirectoryDraft.trim() || storageDirectoryDraft === storageDirectory}>{storageChangeBusy ? 'Copying workspace…' : 'Copy workspace to folder'}</button>
               </form>
               {storageChangeMessage && <p className="rule-message" role="status">{storageChangeMessage}</p>}
@@ -2548,7 +2578,7 @@ function App() {
         </section>
       </div>}
 
-      <footer className={`footer${activePage === 'ask' ? ' footer-chat-hidden' : ''}`}><span>NUMORA <span className="footer-dot">·</span> PRIVATE TRADER LEDGER</span><span>On-device AI <span className="footer-dot">·</span> Built for AI Yako 2026</span></footer>
+      <footer className={`footer${activePage === 'ask' ? ' footer-chat-hidden' : ''}`}><span>NUMORA <span className="footer-dot">·</span> PRIVATE PERSONAL LEDGER</span><span>Works offline <span className="footer-dot">·</span> Your money stays yours</span></footer>
       </div>
     </div>
   )

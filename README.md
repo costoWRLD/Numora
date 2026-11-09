@@ -12,7 +12,7 @@ On launch, the UI checks the local API, readable ledger data, installed EasyOCR/
 
 On first launch, Numora asks for a fallback receipt currency and a starting page. These preferences are saved in `data/preferences.json` and can be changed in Settings. Explicit receipt currency remains editable during review; the preference is used only when OCR has no currency evidence. This development build stores ledger files in the project `data/` folder. A real custom-folder picker is reserved for the packaged desktop build, where storage paths can be safely changed by the app.
 
-Numora is a local bookkeeping assistant concept for small traders in Kenya. It is being built for the AI Yako Cloud to Pocket track with QVAC for on-device reading.
+Numora is an offline-first personal finance app for tracking receipts, expenses, and everyday money in one private local ledger. QVAC powers on-device receipt reading and local language-model features.
 
 ## Current step: local receipt reading, review, and saving
 
